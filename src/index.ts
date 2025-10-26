@@ -27,6 +27,13 @@ import {
   getPromptMessage 
 } from "./tools/index.js";
 
+import {
+  startChromeDevTools,
+  stopChromeDevTools,
+  getChromeDevTools,
+  callChromeDevTool,
+} from "./tools/chrome-devtools.js";
+
 const server = new Server(
   {
     name: "gemini-cli-mcp",
@@ -160,9 +167,21 @@ function stopProgressUpdates(
   }
 }
 
+let cdpToolsCache: Tool[] | null = null;
+
 // tools/list
 server.setRequestHandler(ListToolsRequestSchema, async (request: ListToolsRequest): Promise<{ tools: Tool[] }> => {
-  return { tools: getToolDefinitions() as unknown as Tool[] };
+  const tools = getToolDefinitions();
+  if (!cdpToolsCache) {
+    try {
+      cdpToolsCache = await getChromeDevTools();
+    } catch (error) {
+      Logger.error("Failed to get Chrome DevTools:", error);
+      // Return only the built-in tools if CDP tools fail to load
+      return { tools: tools as unknown as Tool[] };
+    }
+  }
+  return { tools: [...tools, ...cdpToolsCache] as unknown as Tool[] };
 });
 
 // tools/get
@@ -182,10 +201,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest)
 
       Logger.toolInvocation(toolName, request.params.arguments);
 
-      // Execute the tool using the unified registry with progress callback
-      const result = await executeTool(toolName, args, (newOutput) => {
-        latestOutput = newOutput;
-      });
+      let result;
+      const isCdpTool = cdpToolsCache?.some(tool => tool.name === toolName);
+
+      if (isCdpTool) {
+        result = await callChromeDevTool(toolName, args);
+      } else {
+        // Execute the tool using the unified registry with progress callback
+        result = await executeTool(toolName, args, (newOutput) => {
+          latestOutput = newOutput;
+        });
+      }
 
       // Stop progress updates
       stopProgressUpdates(progressData, true);
@@ -253,6 +279,19 @@ server.setRequestHandler(GetPromptRequestSchema, async (request: GetPromptReques
 // Start the server
 async function main() {
   Logger.debug("init gemini-mcp-tool");
-  const transport = new StdioServerTransport(); await server.connect(transport);
+  await startChromeDevTools();
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
   Logger.debug("gemini-mcp-tool listening on stdio");
-} main().catch((error) => {Logger.error("Fatal error:", error); process.exit(1); }); 
+}
+
+main().catch((error) => {
+  Logger.error("Fatal error:", error);
+  stopChromeDevTools().finally(() => {
+    process.exit(1);
+  });
+});
+
+process.on('exit', () => {
+  stopChromeDevTools();
+});
