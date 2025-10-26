@@ -21,10 +21,9 @@ This is a simple Model Context Protocol (MCP) server that allows AI assistants t
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@jamubc/gemini-mcp-tool/badge" alt="Gemini Tool MCP server" />
 </a>
 
-## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#)
+## TLDR: [![Claude](https://img.shields.io/badge/Claude-D97757?logo=claude&logoColor=fff)](#) + [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-886FBF?logo=googlegemini&logoColor=fff)](#) + [![Chrome](https://img.shields.io/badge/Chrome-4285F4?logo=googlechrome&logoColor=fff)](#)
 
-
-**Goal**: Use Gemini's powerful analysis capabilities directly in Claude Code to save tokens and analyze large files.
+**Goal**: Use Gemini's powerful analysis capabilities directly in Claude Code to save tokens, analyze large files, and debug web apps with the integrated Chrome DevTools.
 
 ## Prerequisites
 
@@ -44,66 +43,11 @@ claude mcp add gemini-cli -- npx -y gemini-mcp-tool
 
 Type `/mcp` inside Claude Code to verify the gemini-cli MCP is active.
 
----
+## Integrated Chrome DevTools
 
-### Alternative: Import from Claude Desktop
+This tool now comes with the **[Chrome DevTools MCP](https://developer.chrome.com/blog/chrome-devtools-mcp?authuser=1)** bundled in, giving your AI assistant the power to "see" the output of its code in a real browser environment.
 
-If you already have it configured in Claude Desktop:
-
-1. Add to your Claude Desktop config:
-```json
-"gemini-cli": {
-  "command": "npx",
-  "args": ["-y", "gemini-mcp-tool"]
-}
-```
-
-2. Import to Claude Code:
-```bash
-claude mcp add-from-claude-desktop
-```
-
-## Configuration
-
-Register the MCP server with your MCP client:
-
-### For NPX Usage (Recommended)
-
-Add this configuration to your Claude Desktop config file:
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "npx",
-      "args": ["-y", "gemini-mcp-tool"]
-    }
-  }
-}
-```
-
-### For Global Installation
-
-If you installed globally, use this configuration instead:
-
-```json
-{
-  "mcpServers": {
-    "gemini-cli": {
-      "command": "gemini-mcp"
-    }
-  }
-}
-```
-
-**Configuration File Locations:**
-
-- **Claude Desktop**:
-  - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-  - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-  - **Linux**: `~/.config/claude/claude_desktop_config.json`
-
-After updating the configuration, restart your terminal session.
+There is no extra configuration needed! The Chrome DevTools server will start automatically in the background.
 
 ## Example Workflow
 
@@ -133,9 +77,15 @@ The sandbox mode allows you to safely test code changes, run scripts, or execute
 - `use gemini sandbox to install numpy and create a data visualization`
 - `test this code safely: Create a script that makes HTTP requests to an API`
 
+### With Integrated Chrome DevTools
+
+- **Analyze a file and then debug it**: `use gemini to analyze @my-script.js and then start_chrome_and_connect to check for errors on localhost:8080`
+- **Fix a bug and verify the fix**: `use gemini to fix the bug in @styles.css that is causing the layout shift, then navigate_to_url to verify that the fix works on the live site`
+- **Audit performance and get suggestions**: `use performance_start_trace to run a performance audit on web.dev, then ask gemini to analyze the results and suggest improvements`
+
 ### Tools (for the AI)
 
-These tools are designed to be used by the AI assistant.
+These tools are designed to be used by the AI assistant. In addition to the tools below, all tools from the `chrome-devtools-mcp` are also available.
 
 - **`ask-gemini`**: Asks Google Gemini for its perspective. Can be used for general questions or complex analysis of files.
   - **`prompt`** (required): The analysis request. Use the `@` syntax to include file or directory references (e.g., `@src/main.js explain this code`) or ask general questions (e.g., `Please use a web search to find the latest news stories`).
@@ -158,6 +108,26 @@ You can use these commands directly in Claude Code's interface (compatibility wi
 - **/help**: Displays the Gemini CLI help information.
 - **/ping**: Tests the connection to the server.
   - **`message`** (optional): A message to echo back.
+
+## Testing with the Test Harness
+
+This project includes a test harness that you can use to experiment with the integrated Chrome DevTools. To use it, follow these steps:
+
+1.  **Start the test server:**
+    ```bash
+    npm run test:serve
+    ```
+    This will start a web server on `http://localhost:8080`.
+
+2.  **Start the MCP server:**
+    ```bash
+    npx gemini-mcp-tool
+    ```
+
+3.  **Connect your MCP client** and use the Chrome DevTools tools to interact with the test page. For example:
+    - `start_chrome_and_connect("http://localhost:8080")`
+    - `get_console_error_summary()`
+    - `get_network_requests()`
 
 ## Contributing
 
